@@ -2,12 +2,21 @@
 
 HTTP-only, streamable MCP framework with secure auth, rate limiting, session tokens, and a drop-in plugin model. Includes optional sample code (OpenWeather tool, simple resource) purely as reference—you can remove or replace them freely.
 
+Use it as the MCP backend for the [OrbitAgents](https://github.com/RezaImany/OrbitAgents) orchestrator or any MCP client that wants HTTP transport with auth and streaming.
+
 ## Highlights
 - Streamable HTTP transport (no stdio), ready for remote deployment.
 - Auth: API key + signed session tokens, CORS, body-size and rate limits.
 - Auto-discovers built-in tools/resources; optional entrypoints or `ORBIT_MODULES` for plugins.
 - Compatibility `/mcp` endpoint for JSON-RPC over HTTP (no special Accept header required).
 - Minimal dependencies (FastAPI/Starlette core, Pydantic v2, httpx async client).
+
+## Fits well for
+| Scenario | How this repo helps | Pointer |
+| --- | --- | --- |
+| OrbitAgents Monitoring Assistant | Host observability tools/resources behind auth + streaming for the OrbitAgents monitoring use case | https://github.com/RezaImany/OrbitAgents/tree/main/use-cases/monitoring-assistant |
+| Multi-tenant MCP gateway | Expose internal tools/resources to any MCP client with rate limits and session tokens | docs/ARCHITECTURE.md |
+| SaaS/enterprise plugins | Offer MCP-compatible tools/resources over HTTP without stdio transport | Endpoints below (`/tools`, `/mcp`) |
 
 ## Quick start (local)
 Copy the sample env and fill in your values (the real `.env` stays untracked):
@@ -20,10 +29,15 @@ python -m orbit_remote_mcp --host 0.0.0.0 --port 8000 --transport streamable-htt
 ## Quick start (Docker)
 Copy `.env.example` to `.env`, set the values you need, then start:
 ```bash
-cd orbitRemoteMCP
+cd OrbitRemoteMCP
 docker compose up --build
 ```
 Container exposes `8000` by default.
+
+## Pair with OrbitAgents
+- Set `MCP_SERVER_URL` to your deployment's `/mcp` endpoint in the OrbitAgents `.env`.
+- Set `MCP_API_KEY` to your API key (or a session token from `/sessions`).
+- Run OrbitAgents; tools/resources from this service will be discovered automatically.
 
 ## Configuration
 Only set what you need; sane defaults are included.
@@ -54,16 +68,10 @@ Only set what you need; sane defaults are included.
 Use the compatibility `/mcp` endpoint with standard JSON-RPC payloads.
 ```bash
 # list tools
-curl -X POST http://localhost:8000/mcp \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer change-me" \
-  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+curl -X POST http://localhost:8000/mcp   -H "Content-Type: application/json"   -H "Authorization: Bearer change-me"   -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 
 # call current_weather
-curl -X POST http://localhost:8000/mcp \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer change-me" \
-  -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"current_weather","arguments":{"city":"Paris","country":"FR","units":"metric"}}}'
+curl -X POST http://localhost:8000/mcp   -H "Content-Type: application/json"   -H "Authorization: Bearer change-me"   -d '{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"current_weather","arguments":{"city":"Paris","country":"FR","units":"metric"}}}'
 ```
 
 ## Use as a framework (bring your own tools/resources)
@@ -114,6 +122,10 @@ pytest
 
 ## Architecture
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for a component overview and request flow.
+
+## Docs & links
+- [OrbitAgents orchestrator](https://github.com/RezaImany/OrbitAgents): Pair with this service by setting `MCP_SERVER_URL`/`MCP_API_KEY`.
+- [ARCHITECTURE](docs/ARCHITECTURE.md): Components and request flow.
 
 ## Contributing
 PRs welcome. Please read [CONTRIBUTING.md](CONTRIBUTING.md) before sending changes.
